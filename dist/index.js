@@ -77,4 +77,29 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     res.status(200).send({ message: "ok" });
 }));
+app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const tasksRequreBody = req.body.task;
+    if (tasksRequreBody) {
+        const [{ element_id: elementId }] = tasksRequreBody.update;
+        const [{ responsible_user_id: responsibleUserId }] = tasksRequreBody.update;
+        if (!responsibleUserId) {
+            return;
+        }
+        const createdNoteField = [{
+                created_by: Number(responsibleUserId),
+                entity_id: elementId,
+                entity_type: Entities.Leads,
+                note_type: "common",
+                params: {
+                    text: "Бюджет проверен, ошибок нет"
+                },
+            }];
+        yield api.createNotes(createdNoteField);
+    }
+    else {
+        logger_1.mainLogger.debug("Task update error");
+    }
+    logger_1.mainLogger.debug(tasksRequreBody);
+    res.status(200).send({ message: "ok" });
+}));
 app.listen(config_1.default.PORT, () => logger_1.mainLogger.debug('Server started on ', config_1.default.PORT));

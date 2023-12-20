@@ -96,6 +96,40 @@ app.post("/hook", async (req: Request, res: Response) => {
 
 });
 
+app.post("/hookTask", async (req, res) => {
+	
+	const tasksRequreBody = req.body.task;
+
+	if(tasksRequreBody) {
+
+		const [{element_id:elementId}] = tasksRequreBody.update;
+		const [{responsible_user_id:responsibleUserId}] = tasksRequreBody.update;
+
+		if(!responsibleUserId){
+			return;
+		}
+
+		const createdNoteField = [{
+			created_by: Number(responsibleUserId),
+			entity_id: elementId,
+			entity_type: Entities.Leads,
+			note_type: "common",
+			params: {
+				text: "Бюджет проверен, ошибок нет"
+			},
+		}];
+
+		await api.createNotes(createdNoteField);
+	}
+	else{
+		mainLogger.debug("Task update error");
+	}
+
+	mainLogger.debug(tasksRequreBody);
+
+	res.status(200).send({message: "ok"});
+});
+
 
 
 app.listen(config.PORT,()=>mainLogger.debug('Server started on ', config.PORT))

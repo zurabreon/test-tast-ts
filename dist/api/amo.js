@@ -111,6 +111,15 @@ class AmoCRM extends api_1.default {
                 },
             });
         });
+        //Создать примечание
+        this.createNotes = this.authChecker((data) => {
+            const [notesData] = [].concat(data);
+            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/${notesData.entity_type}/${notesData.entity_id}/notes`, [notesData], {
+                headers: {
+                    Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+                },
+            });
+        });
         this.SUB_DOMAIN = subDomain;
         this.AMO_TOKEN_PATH = `./authclients/${this.SUB_DOMAIN}_amo_token.json`;
         this.LIMIT = 200;
