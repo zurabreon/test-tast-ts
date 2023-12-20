@@ -10,6 +10,8 @@ import {
 import log4js from "log4js";
 import { Contact } from "../types/contacts/contact";
 import { LeadData } from "../types/lead/lead";
+import { Lead } from "../types/embeddedEntities/embeddedEntities";
+import { ContactList } from "../types/contacts/contactList";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
@@ -130,7 +132,7 @@ class AmoCRM extends Api {
     });
     
     //Получить сделку
-    getDeal = this.authChecker((id, withParam = []): Promise<LeadData> => {
+    getDeal = this.authChecker((id: number, withParam = []): Promise<LeadData> => {
         return axios
             .get<LeadData>(
                 `${this.ROOT_PATH}/api/v4/leads/${id}?${querystring.encode({
@@ -198,7 +200,7 @@ class AmoCRM extends Api {
 	});
 
     //Создать примечание
-    createNotes = this.authChecker((data) => {
+    createNotes = this.authChecker((data: Object[]) => {
         const [notesData] = [].concat(data);
         return axios.post(`${this.ROOT_PATH}/api/v4/${notesData.entity_type}/${notesData.entity_id}/notes`, [notesData],{
 			headers: {

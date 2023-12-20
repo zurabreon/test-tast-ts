@@ -31,7 +31,17 @@ app.get("/", async (req: Request, res: Response) => {
 	res.send("123");
 }); 
 
-app.post("/hook", async (req: Request, res: Response) => {
+type ContactWebHook = {
+	contacts: {
+		update:[ {
+			id: string,
+			linked_leads_id: number,
+		}]
+	}
+	
+}
+
+app.post("/hook", async (req: Request<unknown, unknown, ContactWebHook>, res: Response) => {
 
 	const contactsRequestBody = req.body.contacts;
 	
@@ -40,36 +50,40 @@ app.post("/hook", async (req: Request, res: Response) => {
 		throw new Error('err');
 	}
 
-	const [{id:contactId}] = contactsRequestBody.update;
+	const contactId = Number(contactsRequestBody.update[0].id);
 	
-	const contact = await api.getContact(Number(contactId)); 
-
+	const contact = await api.getContact(contactId); 
+	
 	const [ dealId ] = Object.keys(contactsRequestBody.update[0].linked_leads_id).map(Number); 
 
 	if(!dealId) {
 		mainLogger.debug("Contact isn't attatched to the deal");
 		return;
-	}
+	}	
 
 	const deal = await api.getDeal(dealId, [Entities.Contacts]);
 
-	const isContactMain = deal._embedded.contacts.find((item :{id:number}) => item.id === Number(contactId)).is_main;
+	const isContactMain = deal._embedded?.contacts?.find(item => item.id === contactId)?.is_main || false;
 
 	if (!isContactMain) {
 		mainLogger.debug("Contact isn't main");
 		return;
 	}
 
-	const servicesBill = LIST_OF_SERVICES_ID.reduce((accum: number, elem: number) => accum + Number(getFieldValues(contact.custom_fields_values, elem)), 0);
+
+
+	const servicesBill = LIST_OF_SERVICES_ID.reduce((accum: number, elem: number) => accum + getFieldValues(contact.custom_fields_values, elem), 0);
 		
 	const updatedLeadsValues = {
 		id: dealId,
 		price: servicesBill,
 	};
-	
-	await api.updateDeals(updatedLeadsValues);
+		
+	console.log(servicesBill);
 
-	const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+	await api.updateDeals([updatedLeadsValues]);
+
+	/*const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
 
 	const tasks = (await api.getTasks())._embedded.tasks;
 
@@ -89,7 +103,7 @@ app.post("/hook", async (req: Request, res: Response) => {
 	}
 	else {
 		mainLogger.debug("Task has already been created");
-	}
+	}*/
 
 	res.status(200).send({message: "ok"}); 
 
@@ -108,7 +122,7 @@ app.post("/hookTask", async (req, res) => {
 			return;
 		}
 
-		const createdNoteField = [{
+		const createdNoteField = {
 			created_by: Number(responsibleUserId),
 			entity_id: elementId,
 			entity_type: Entities.Leads,
@@ -116,9 +130,9 @@ app.post("/hookTask", async (req, res) => {
 			params: {
 				text: "Бюджет проверен, ошибок нет"
 			},
-		}];
+		};
 
-		await api.createNotes(createdNoteField);
+		await api.createNotes([createdNoteField]);
 	}
 	else{
 		mainLogger.debug("Task update error");

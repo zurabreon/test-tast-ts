@@ -34,33 +34,38 @@ app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("123");
 }));
 app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c;
     const contactsRequestBody = req.body.contacts;
     if (!contactsRequestBody) {
         res.status(400).send({ message: "Bad request" });
         throw new Error('err');
     }
-    const [{ id: contactId }] = contactsRequestBody.update;
-    const contact = yield api.getContact(Number(contactId));
+    const contactId = Number(contactsRequestBody.update[0].id);
+    const contact = yield api.getContact(contactId);
     const [dealId] = Object.keys(contactsRequestBody.update[0].linked_leads_id).map(Number);
     if (!dealId) {
         logger_1.mainLogger.debug("Contact isn't attatched to the deal");
         return;
     }
     const deal = yield api.getDeal(dealId, [Entities.Contacts]);
-    const isContactMain = deal._embedded.contacts.find((item) => item.id === Number(contactId)).is_main;
+    const isContactMain = ((_c = (_b = (_a = deal._embedded) === null || _a === void 0 ? void 0 : _a.contacts) === null || _b === void 0 ? void 0 : _b.find(item => item.id === contactId)) === null || _c === void 0 ? void 0 : _c.is_main) || false;
     if (!isContactMain) {
         logger_1.mainLogger.debug("Contact isn't main");
         return;
     }
-    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + Number((0, utils_1.getFieldValues)(contact.custom_fields_values, elem)), 0);
+    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + (0, utils_1.getFieldValues)(contact.custom_fields_values, elem), 0);
     const updatedLeadsValues = {
         id: dealId,
         price: servicesBill,
     };
-    yield api.updateDeals(updatedLeadsValues);
-    const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
-    const tasks = (yield api.getTasks())._embedded.tasks;
-    const isTaskAlreadyCreated = tasks.find((item) => (item.entity_id === dealId && item.is_completed === false));
+    console.log(servicesBill);
+    yield api.updateDeals([updatedLeadsValues]);
+    /*const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+
+    const tasks = (await api.getTasks())._embedded.tasks;
+
+    const isTaskAlreadyCreated = tasks.find((item :{entity_id:number, is_completed: boolean}) => (item.entity_id === dealId && item.is_completed === false));
+
     if (!isTaskAlreadyCreated) {
         const addTaskField = {
             responsible_user_id: deal.created_by,
@@ -69,12 +74,13 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             complete_till: completeTill,
             entity_id: dealId,
             entity_type: Entities.Leads,
-        };
-        yield api.createTasks(addTaskField);
+        }
+
+        await api.createTasks(addTaskField);
     }
     else {
-        logger_1.mainLogger.debug("Task has already been created");
-    }
+        mainLogger.debug("Task has already been created");
+    }*/
     res.status(200).send({ message: "ok" });
 }));
 app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -85,16 +91,16 @@ app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         if (!responsibleUserId) {
             return;
         }
-        const createdNoteField = [{
-                created_by: Number(responsibleUserId),
-                entity_id: elementId,
-                entity_type: Entities.Leads,
-                note_type: "common",
-                params: {
-                    text: "Бюджет проверен, ошибок нет"
-                },
-            }];
-        yield api.createNotes(createdNoteField);
+        const createdNoteField = {
+            created_by: Number(responsibleUserId),
+            entity_id: elementId,
+            entity_type: Entities.Leads,
+            note_type: "common",
+            params: {
+                text: "Бюджет проверен, ошибок нет"
+            },
+        };
+        yield api.createNotes([createdNoteField]);
     }
     else {
         logger_1.mainLogger.debug("Task update error");
