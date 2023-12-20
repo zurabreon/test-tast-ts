@@ -12,10 +12,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHuminizeTimeFromUnix = exports.getUniqNumbers = exports.getTodayDateTime = exports.bulkOperation = exports.getSanationMultiselectFields = exports.analyzePatientSanation = exports.getDateUnixValue = exports.getUnixBithdate = exports.makeField = exports.getAllPages = exports.getFieldValues = exports.getFieldValue = exports.getClearPhoneNumber = void 0;
+exports.getHuminizeTimeFromUnix = exports.getUniqNumbers = exports.getTodayDateTime = exports.bulkOperation = exports.analyzePatientSanation = exports.getDateUnixValue = exports.getUnixBithdate = exports.makeField = exports.getAllPages = exports.getFieldValues = exports.getFieldValue = exports.getClearPhoneNumber = void 0;
 const moment_1 = __importDefault(require("moment"));
 const fs_1 = __importDefault(require("fs"));
-const constants_1 = require("../../IDENT/IDENT_v.4/server/constants");
 const getTodayDateTime = () => (0, moment_1.default)().format("YYYY-MM-DD HH:MM:ss");
 exports.getTodayDateTime = getTodayDateTime;
 const getClearPhoneNumber = (tel) => {
@@ -113,43 +112,44 @@ exports.analyzePatientSanation = analyzePatientSanation;
 /**
  * Функция возвращает мультисписковое поле для карточки контакта "Информация о санации"
  */
-const getSanationMultiselectFields = (field_id, patientSanation, sanationEnumIds = constants_1.SANATION_ENUM_ID) => {
-    if (!patientSanation) {
-        return undefined;
-    }
-    const sanationTypes = [
-        {
-            name: "ID_TherapeuticSanations",
-            value: patientSanation.ID_TherapeuticSanations
-        },
-        {
-            name: "ID_ProstheticSanations",
-            value: patientSanation.ID_ProstheticSanations
-        },
-        {
-            name: "ID_OrthodonticSanations",
-            value: patientSanation.ID_OrthodonticSanations
-        },
-        {
-            name: "ID_ParodontolalSanations",
-            value: patientSanation.ID_ParodontolalSanations
-        },
-        {
-            name: "ID_SurgicalSanations",
-            value: patientSanation.ID_SurgicalSanations
-        }
-    ];
-    return {
-        field_id: field_id,
-        values: sanationTypes.filter(element => element.value === 2 || element.value === 3).map(element => {
-            return {
-                value: sanationEnumIds[element.name][1],
-                enum_id: sanationEnumIds[element.name][0]
-            };
-        })
-    };
-};
-exports.getSanationMultiselectFields = getSanationMultiselectFields;
+/*const getSanationMultiselectFields = (field_id:number, patientSanation?:serverPatientSanation,  sanationEnumIds = SANATION_ENUM_ID) => {
+   if (!patientSanation) {
+       return undefined
+   }
+
+   const sanationTypes = [
+       {
+           name: "ID_TherapeuticSanations",
+           value: patientSanation.ID_TherapeuticSanations
+       },
+       {
+           name: "ID_ProstheticSanations",
+           value: patientSanation.ID_ProstheticSanations
+       },
+       {
+           name: "ID_OrthodonticSanations",
+           value: patientSanation.ID_OrthodonticSanations
+       },
+       {
+           name: "ID_ParodontolalSanations",
+           value: patientSanation.ID_ParodontolalSanations
+       },
+       {
+           name: "ID_SurgicalSanations",
+           value: patientSanation.ID_SurgicalSanations
+       }
+   ];
+
+   return {
+       field_id: field_id,
+       values: sanationTypes.filter(element => element.value === 2 || element.value === 3).map(element => {
+           return {
+               value: sanationEnumIds[element.name][1],
+               enum_id: sanationEnumIds[element.name][0]
+           }
+       })
+   }
+}*/
 //функция для разбиения запроса на создание на несколько по chunkSize
 const bulkOperation = (request, data, chunkSize, operationName = "bulk") => __awaiter(void 0, void 0, void 0, function* () {
     let failed = [];

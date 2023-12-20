@@ -21,7 +21,7 @@ const api_1 = __importDefault(require("./api"));
 const logger_1 = require("../logger");
 (0, axios_retry_1.default)(axios_1.default, { retries: 3, retryDelay: axios_retry_1.default.exponentialDelay });
 class AmoCRM extends api_1.default {
-    constructor(subDomain, CODE) {
+    constructor(subDomain, code) {
         super();
         this.authChecker = (request) => {
             return (...args) => __awaiter(this, void 0, void 0, function* () {
@@ -52,6 +52,7 @@ class AmoCRM extends api_1.default {
                 },
             }).then((res) => res.data);
         });
+        //Получить сделку
         this.getDeal = this.authChecker((id, withParam = []) => {
             return axios_1.default
                 .get(`${this.ROOT_PATH}/api/v4/leads/${id}?${querystring_1.default.encode({
@@ -62,6 +63,14 @@ class AmoCRM extends api_1.default {
                 },
             })
                 .then((res) => res.data);
+        });
+        //Обновить сделку
+        this.updateDeals = this.authChecker((data) => {
+            return axios_1.default.patch(`${this.ROOT_PATH}/api/v4/leads`, [].concat(data), {
+                headers: {
+                    Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+                },
+            });
         });
         // Получить контакт по id
         this.getContact = this.authChecker((id) => {
@@ -90,7 +99,7 @@ class AmoCRM extends api_1.default {
         this.ACCESS_TOKEN = "";
         this.REFRESH_TOKEN = "";
         this.logger = (0, logger_1.getUserLogger)(this.SUB_DOMAIN);
-        this.CODE = CODE;
+        this.CODE = code;
     }
     requestAccessToken() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -98,8 +107,8 @@ class AmoCRM extends api_1.default {
                 .post(`${this.ROOT_PATH}/oauth2/access_token`, {
                 client_id: config_1.default.CLIENT_ID,
                 client_secret: config_1.default.CLIENT_SECRET,
-                grant_type: "authorization_CODE",
-                CODE: this.CODE,
+                grant_type: "authorization_code",
+                code: this.CODE,
                 redirect_uri: config_1.default.REDIRECT_URI,
             })
                 .then((res) => {
@@ -121,8 +130,8 @@ class AmoCRM extends api_1.default {
             try {
                 const content = fs_1.default.readFileSync(this.AMO_TOKEN_PATH).toString();
                 const token = JSON.parse(content);
-                this.ACCESS_TOKEN = token.ACCESS_TOKEN;
-                this.REFRESH_TOKEN = token.REFRESH_TOKEN;
+                this.ACCESS_TOKEN = token.access_token;
+                this.REFRESH_TOKEN = token.refresh_token;
                 return Promise.resolve(token);
             }
             catch (error) {
@@ -130,8 +139,8 @@ class AmoCRM extends api_1.default {
                 this.logger.debug("Попытка заново получить токен");
                 const token = yield this.requestAccessToken();
                 fs_1.default.writeFileSync(this.AMO_TOKEN_PATH, JSON.stringify(token));
-                this.ACCESS_TOKEN = token.ACCESS_TOKEN;
-                this.REFRESH_TOKEN = token.REFRESH_TOKEN;
+                this.ACCESS_TOKEN = token.access_token;
+                this.REFRESH_TOKEN = token.refresh_token;
                 return Promise.resolve(token);
             }
         });
@@ -143,7 +152,7 @@ class AmoCRM extends api_1.default {
                 .post(`${this.ROOT_PATH}/oauth2/access_token`, {
                 client_id: config_1.default.CLIENT_ID,
                 client_secret: config_1.default.CLIENT_SECRET,
-                grant_type: "REFRESH_TOKEN",
+                grant_type: "refresh_token",
                 REFRESH_TOKEN: this.REFRESH_TOKEN,
                 redirect_uri: config_1.default.REDIRECT_URI,
             })
