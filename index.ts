@@ -4,6 +4,8 @@ import  AmoCRM  from "./api/amo";
 import { mainLogger } from "./logger"
 import config from "./config";
 import { getFieldValue, getFieldValues } from "./utils";
+import { CreatedTask, Task } from "./types/task/task";
+
 
 const LIST_OF_SERVICES_ID = [486601, 486603, 486605, 486607, 486609]; // id полей услуг клиники
 const TYPE_TASK_FOR_CHECK = 3186358; // id типа задачи "Проверить"
@@ -64,10 +66,32 @@ app.post("/hook", async (req: Request, res: Response) => {
 	const updatedLeadsValues = {
 		id: dealId,
 		price: servicesBill,
-	}		
+	};
 	
 	await api.updateDeals(updatedLeadsValues);
-	 
+
+	const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+
+	const tasks = (await api.getTasks())._embedded.tasks;
+
+	const isTaskAlreadyCreated = tasks.find((item :{entity_id:number, is_completed: boolean}) => (item.entity_id === dealId && item.is_completed === false));
+
+	if (!isTaskAlreadyCreated) {
+		const addTaskField = {
+			responsible_user_id: deal.created_by,
+			task_type_id: TYPE_TASK_FOR_CHECK,
+			text: "Проверить бюджет",
+			complete_till: completeTill,
+			entity_id: dealId,
+			entity_type: Entities.Leads,
+		}
+
+		await api.createTasks(addTaskField);
+	}
+	else {
+		mainLogger.debug("Task has already been created");
+	}
+
 	res.status(200).send({message: "ok"}); 
 
 });

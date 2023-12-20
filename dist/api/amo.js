@@ -92,6 +92,25 @@ class AmoCRM extends api_1.default {
             })
                 .then((res) => res.data);
         });
+        //Получить задачу по id сущности
+        this.getTasks = this.authChecker(() => {
+            return axios_1.default
+                .get(`${this.ROOT_PATH}/api/v4/tasks`, {
+                headers: {
+                    Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+                },
+            })
+                .then((res) => res.data);
+        });
+        //Создать задачу
+        this.createTasks = this.authChecker((data) => {
+            const tasksData = [].concat(data);
+            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/tasks`, tasksData, {
+                headers: {
+                    Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+                },
+            });
+        });
         this.SUB_DOMAIN = subDomain;
         this.AMO_TOKEN_PATH = `./authclients/${this.SUB_DOMAIN}_amo_token.json`;
         this.LIMIT = 200;
@@ -149,7 +168,7 @@ class AmoCRM extends api_1.default {
     refreshToken() {
         return __awaiter(this, void 0, void 0, function* () {
             return axios_1.default
-                .post(`${this.ROOT_PATH}/oauth2/access_token`, {
+                .post(`${this.ROOT_PATH}/oauth2/refresh_token`, {
                 client_id: config_1.default.CLIENT_ID,
                 client_secret: config_1.default.CLIENT_SECRET,
                 grant_type: "refresh_token",
@@ -160,8 +179,8 @@ class AmoCRM extends api_1.default {
                 this.logger.debug("Токен успешно обновлен");
                 const token = res.data;
                 fs_1.default.writeFileSync(this.AMO_TOKEN_PATH, JSON.stringify(token));
-                this.ACCESS_TOKEN = token.ACCESS_TOKEN;
-                this.REFRESH_TOKEN = token.REFRESH_TOKEN;
+                this.ACCESS_TOKEN = token.access_token;
+                this.REFRESH_TOKEN = token.refresh_token;
                 return token;
             })
                 .catch((err) => {
