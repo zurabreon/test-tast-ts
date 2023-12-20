@@ -58,6 +58,23 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         price: servicesBill,
     };
     yield api.updateDeals(updatedLeadsValues);
+    const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+    const tasks = (yield api.getTasks())._embedded.tasks;
+    const isTaskAlreadyCreated = tasks.find((item) => (item.entity_id === dealId && item.is_completed === false));
+    if (!isTaskAlreadyCreated) {
+        const addTaskField = {
+            responsible_user_id: deal.created_by,
+            task_type_id: TYPE_TASK_FOR_CHECK,
+            text: "Проверить бюджет",
+            complete_till: completeTill,
+            entity_id: dealId,
+            entity_type: Entities.Leads,
+        };
+        yield api.createTasks(addTaskField);
+    }
+    else {
+        logger_1.mainLogger.debug("Task has already been created");
+    }
     res.status(200).send({ message: "ok" });
 }));
 app.listen(config_1.default.PORT, () => logger_1.mainLogger.debug('Server started on ', config_1.default.PORT));
