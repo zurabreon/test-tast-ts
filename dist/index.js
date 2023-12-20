@@ -16,21 +16,48 @@ const express_1 = __importDefault(require("express"));
 const amo_1 = __importDefault(require("./api/amo"));
 const logger_1 = require("./logger");
 const config_1 = __importDefault(require("./config"));
+const utils_1 = require("./utils");
+const LIST_OF_SERVICES_ID = [486601, 486603, 486605, 486607, 486609]; // id полей услуг клиники
+const TYPE_TASK_FOR_CHECK = 3186358; // id типа задачи "Проверить"
+const MILISENCONDS_IN_PER_SECOND = 1000;
+const UNIX_ONE_DAY = 86400;
+const Entities = {
+    Contacts: "contacts",
+    Leads: "leads",
+};
 const app = (0, express_1.default)();
+const api = new amo_1.default(config_1.default.SUB_DOMAIN, config_1.default.AUTH_CODE);
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
-app.get("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const authCode = String(req.query.code);
-    const subDomain = String(req.query.referrer).split(".")[0];
-    logger_1.mainLogger.debug(req.query);
-    logger_1.mainLogger.debug("Запрос на установку получен");
-    const api = new amo_1.default(subDomain, authCode);
-    yield api.getAccessToken()
-        .then(() => logger_1.mainLogger.debug(`Авторизация при установке виджета для ${subDomain} прошла успешно`))
-        .catch((err) => logger_1.mainLogger.debug("Ошибка авторизации при установке виджета ", subDomain, err.data));
+api.getAccessToken();
+app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    res.send("123");
 }));
 app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log(req);
-    res.sendStatus(200);
+    const contactsRequestBody = req.body.contacts;
+    if (!contactsRequestBody) {
+        res.status(400).send({ message: "Bad request" });
+        throw new Error('err');
+    }
+    const [{ id: contactId }] = contactsRequestBody.update;
+    const contact = yield api.getContact(Number(contactId));
+    const [dealId] = Object.keys(contactsRequestBody.update[0].linked_leads_id).map(Number);
+    if (!dealId) {
+        logger_1.mainLogger.debug("Contact isn't attatched to the deal");
+        return;
+    }
+    const deal = yield api.getDeal(dealId, [Entities.Contacts]);
+    const isContactMain = deal._embedded.contacts.find((item) => item.id === Number(contactId)).is_main;
+    if (!isContactMain) {
+        logger_1.mainLogger.debug("Contact isn't main");
+        return;
+    }
+    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + Number((0, utils_1.getFieldValues)(contact.custom_fields_values, elem)), 0);
+    const updatedLeadsValues = {
+        id: dealId,
+        price: servicesBill,
+    };
+    yield api.updateDeals(updatedLeadsValues);
+    res.status(200).send({ message: "ok" });
 }));
 app.listen(config_1.default.PORT, () => logger_1.mainLogger.debug('Server started on ', config_1.default.PORT));

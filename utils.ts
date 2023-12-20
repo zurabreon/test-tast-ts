@@ -1,8 +1,8 @@
 import moment from "moment";
 import fs from "fs";
+import { Customfield } from "./types/customField/customField";
 import { customField, requestParameters, custom_fields, createdDealResponse } from "../../IDENT/IDENT_v.4/server/@types/amo-types";
 import { serverPatientSanation } from "../../IDENT/IDENT_v.4/server/@types/ident-patients-type";
-import { SANATION_ENUM_ID } from "../../IDENT/IDENT_v.4/server/constants";
 
 const getTodayDateTime = ():string => moment().format("YYYY-MM-DD HH:MM:ss");
 
@@ -109,7 +109,7 @@ const analyzePatientSanation = (patientSanation?:serverPatientSanation) => {
 /**
  * Функция возвращает мультисписковое поле для карточки контакта "Информация о санации"
  */
- const getSanationMultiselectFields = (field_id:number, patientSanation?:serverPatientSanation,  sanationEnumIds = SANATION_ENUM_ID) => {
+ /*const getSanationMultiselectFields = (field_id:number, patientSanation?:serverPatientSanation,  sanationEnumIds = SANATION_ENUM_ID) => {
     if (!patientSanation) {
         return undefined
     }
@@ -146,7 +146,7 @@ const analyzePatientSanation = (patientSanation?:serverPatientSanation) => {
             }
         })
     }
-}
+}*/
 
 //функция для разбиения запроса на создание на несколько по chunkSize
 const bulkOperation = async (
@@ -213,7 +213,7 @@ export {
     getUnixBithdate,
     getDateUnixValue,
     analyzePatientSanation,
-    getSanationMultiselectFields,
+   // getSanationMultiselectFields,
     bulkOperation,
     getTodayDateTime,
     getUniqNumbers,

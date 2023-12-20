@@ -1,14 +1,15 @@
 import axios from "axios";
 import config from "../config";
 import querystring from "querystring";
-import fs from "fs";
+import fs, { access } from "fs";
 import axiosRetry from "axios-retry";
 import Api from "./api";
 import {
     getUserLogger
 } from "../logger";
-import log4js from "log4js"
-
+import log4js from "log4js";
+import {Contact} from "../types/contacts/contact";
+import {Lead} from "../types/embeddedEntities/embeddedEntities";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
@@ -22,7 +23,7 @@ class AmoCRM extends Api {
     logger: log4js.Logger;
     CODE: string;
 
-    constructor(subDomain: string, CODE: string) {
+    constructor(subDomain: string, code: string) {
         super();
         this.SUB_DOMAIN = subDomain;
         this.AMO_TOKEN_PATH = `./authclients/${this.SUB_DOMAIN}_amo_token.json`;
@@ -31,7 +32,7 @@ class AmoCRM extends Api {
         this.ACCESS_TOKEN = "";
         this.REFRESH_TOKEN = "";
         this.logger = getUserLogger(this.SUB_DOMAIN);
-        this.CODE = CODE;
+        this.CODE = code;
     }
 
     authChecker = <T extends any[], D>(request: (...args: T) => Promise<D>) => {
@@ -62,8 +63,8 @@ class AmoCRM extends Api {
             .post(`${this.ROOT_PATH}/oauth2/access_token`, {
                 client_id: config.CLIENT_ID,
                 client_secret: config.CLIENT_SECRET,
-                grant_type: "authorization_CODE",
-                CODE: this.CODE,
+                grant_type: "authorization_code",
+                code: this.CODE,
                 redirect_uri: config.REDIRECT_URI,
             })
             .then((res) => {
@@ -83,16 +84,16 @@ class AmoCRM extends Api {
         try {
             const content = fs.readFileSync(this.AMO_TOKEN_PATH).toString();
             const token = JSON.parse(content);
-            this.ACCESS_TOKEN = token.ACCESS_TOKEN;
-            this.REFRESH_TOKEN = token.REFRESH_TOKEN;
+            this.ACCESS_TOKEN = token.access_token;
+            this.REFRESH_TOKEN = token.refresh_token;
             return Promise.resolve(token);
         } catch (error) {
             this.logger.error(`Ошибка при чтении файла ${this.AMO_TOKEN_PATH}`, error);
             this.logger.debug("Попытка заново получить токен");
             const token = await this.requestAccessToken();
             fs.writeFileSync(this.AMO_TOKEN_PATH, JSON.stringify(token));
-            this.ACCESS_TOKEN = token.ACCESS_TOKEN;
-            this.REFRESH_TOKEN = token.REFRESH_TOKEN;
+            this.ACCESS_TOKEN = token.access_token;
+            this.REFRESH_TOKEN = token.refresh_token;
             return Promise.resolve(token);
         }
     };
@@ -102,7 +103,7 @@ class AmoCRM extends Api {
             .post(`${this.ROOT_PATH}/oauth2/access_token`, {
                 client_id: config.CLIENT_ID,
                 client_secret: config.CLIENT_SECRET,
-                grant_type: "REFRESH_TOKEN",
+                grant_type: "refresh_token",
                 REFRESH_TOKEN: this.REFRESH_TOKEN,
                 redirect_uri: config.REDIRECT_URI,
             })
@@ -126,11 +127,12 @@ class AmoCRM extends Api {
                 Authorization: `Bearer ${this.ACCESS_TOKEN}`,
             },
         }).then((res) => res.data)
-    })
-
-    getDeal = this.authChecker((id, withParam = []) => {
+    });
+    
+    //Получить сделку
+    getDeal = this.authChecker((id, withParam = []): Promise<Lead> => {
         return axios
-            .get(
+            .get<Lead>(
                 `${this.ROOT_PATH}/api/v4/leads/${id}?${querystring.encode({
                     with: withParam.join(","),
                 })}`,
@@ -143,10 +145,19 @@ class AmoCRM extends Api {
             .then((res) => res.data);
     });
 
+    //Обновить сделку
+    updateDeals = this.authChecker((data)=> {
+        return axios.patch(`${this.ROOT_PATH}/api/v4/leads`, [].concat(data), {
+            headers: {
+                Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+            },
+        });
+    });
+
     // Получить контакт по id
-    getContact = this.authChecker((id) => {
+    getContact = this.authChecker((id: number): Promise<Contact> => {
         return axios
-            .get(`${this.ROOT_PATH}/api/v4/contacts/${id}`, {
+            .get<Contact>(`${this.ROOT_PATH}/api/v4/contacts/${id}`, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
