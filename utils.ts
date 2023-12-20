@@ -1,6 +1,5 @@
 import moment from "moment";
 import fs from "fs";
-import { Customfield } from "./types/customField/customField";
 import { customField, requestParameters, custom_fields, createdDealResponse } from "../../IDENT/IDENT_v.4/server/@types/amo-types";
 import { serverPatientSanation } from "../../IDENT/IDENT_v.4/server/@types/ident-patients-type";
 

@@ -10,9 +10,6 @@ import {
 import log4js from "log4js";
 import { Contact } from "../types/contacts/contact";
 import { LeadData } from "../types/lead/lead";
-import { Task } from "../types/task/task";
-import { TaskList } from "../types/task/taskList";
-import { constrainedMemory } from "process";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 

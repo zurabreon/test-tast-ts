@@ -3,8 +3,7 @@ import { Request , Response} from "express";
 import  AmoCRM  from "./api/amo";
 import { mainLogger } from "./logger"
 import config from "./config";
-import { getFieldValue, getFieldValues } from "./utils";
-import { CreatedTask, Task } from "./types/task/task";
+import { getFieldValues } from "./utils";
 
 
 const LIST_OF_SERVICES_ID = [486601, 486603, 486605, 486607, 486609]; // id полей услуг клиники
