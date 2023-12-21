@@ -111,8 +111,8 @@ class AmoCRM extends api_1.default {
             });
         });
         //Создать примечание
-        this.createNotes = this.authChecker((data) => {
-            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/${data[0].entity_type}/${data[0].entity_id}/notes`, data, {
+        this.createNotes = this.authChecker((entityType, data) => {
+            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/${entityType}/notes`, data, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },

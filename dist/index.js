@@ -89,13 +89,12 @@ app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const createdNoteField = {
             created_by: Number(responsibleUserId),
             entity_id: elementId,
-            entity_type: Entities.Leads,
             note_type: "common",
             params: {
                 text: "Бюджет проверен, ошибок нет"
             },
         };
-        yield api.createNotes([createdNoteField]);
+        yield api.createNotes(Entities.Leads, [createdNoteField]);
     }
     else {
         logger_1.mainLogger.debug("Task update error");

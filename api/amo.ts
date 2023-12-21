@@ -200,8 +200,8 @@ class AmoCRM extends Api {
 	});
  
     //Создать примечание
-    createNotes = this.authChecker((data: CreatedNote[]): Promise<CreatedNote> => {
-        return axios.post(`${this.ROOT_PATH}/api/v4/${data[0].entity_type}/${data[0].entity_id}/notes`, data,{
+    createNotes = this.authChecker((entityType: 'leads', data: CreatedNote[]): Promise<CreatedNote> => {
+        return axios.post(`${this.ROOT_PATH}/api/v4/${entityType}/notes`, data,{
 			headers: {
 				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
 			},

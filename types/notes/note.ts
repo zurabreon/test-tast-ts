@@ -38,7 +38,6 @@ export type Note = {
 
 export type CreatedNote = {
   entity_id: number,
-  entity_type: string,
   created_by?: number,
   note_type: string,
   params: CommonType | CallinType | CallOutType | ServiceMessageType | MessageCshierType 

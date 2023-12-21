@@ -18,7 +18,7 @@ const UNIX_ONE_DAY = 86400;
 const Entities = {
 	Contacts: "contacts",
 	Leads: "leads",
-}
+} as const
 
 
 const app = express();
@@ -136,14 +136,13 @@ app.post("/hookTask", async (req: Request<unknown, unknown, TaskWebHook>, res: R
 		const createdNoteField: CreatedNote = {
 			created_by: Number(responsibleUserId),
 			entity_id: elementId,
-			entity_type: Entities.Leads,
 			note_type: "common",
 			params: {
 				text: "Бюджет проверен, ошибок нет"
 			},
 		};
 
-		await api.createNotes([createdNoteField]);
+		await api.createNotes(Entities.Leads, [createdNoteField]);
 	}
 	else{
 		mainLogger.debug("Task update error");
