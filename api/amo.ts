@@ -106,7 +106,7 @@ class AmoCRM extends Api {
                 client_id: config.CLIENT_ID,
                 client_secret: config.CLIENT_SECRET,
                 grant_type: "refresh_token",
-                REFRESH_TOKEN: this.REFRESH_TOKEN,
+                refresh_token: this.REFRESH_TOKEN,
                 redirect_uri: config.REDIRECT_URI,
             })
             .then((res) => {

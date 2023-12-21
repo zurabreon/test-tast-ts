@@ -12,9 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getHuminizeTimeFromUnix = exports.getUniqNumbers = exports.getTodayDateTime = exports.bulkOperation = exports.analyzePatientSanation = exports.getDateUnixValue = exports.getUnixBithdate = exports.makeField = exports.getAllPages = exports.getFieldValues = exports.getFieldValue = exports.getClearPhoneNumber = void 0;
+exports.getHuminizeTimeFromUnix = exports.getUniqNumbers = exports.getTodayDateTime = exports.getDateUnixValue = exports.getUnixBithdate = exports.makeField = exports.getAllPages = exports.getFieldValues = exports.getFieldValue = exports.getClearPhoneNumber = void 0;
 const moment_1 = __importDefault(require("moment"));
-const fs_1 = __importDefault(require("fs"));
 const getTodayDateTime = () => (0, moment_1.default)().format("YYYY-MM-DD HH:MM:ss");
 exports.getTodayDateTime = getTodayDateTime;
 const getClearPhoneNumber = (tel) => {
@@ -97,97 +96,6 @@ const getDateUnixValue = (date) => {
     return (0, moment_1.default)((0, moment_1.default)(date).utcOffset(3).format("DD.MM.YYYY HH:mm:ss"), "DD.MM.YYYY HH:mm:ss").unix();
 };
 exports.getDateUnixValue = getDateUnixValue;
-const analyzePatientSanation = (patientSanation) => {
-    if (!patientSanation) {
-        return false;
-    }
-    const { ID_TherapeuticSanations, ID_ProstheticSanations, ID_OrthodonticSanations, ID_ParodontolalSanations, ID_SurgicalSanations } = patientSanation;
-    const sanationTypes = [ID_TherapeuticSanations, ID_ProstheticSanations, ID_OrthodonticSanations, ID_ParodontolalSanations, ID_SurgicalSanations];
-    if (sanationTypes.some((element) => element === 2 || element === 3)) {
-        return true;
-    }
-    return false;
-};
-exports.analyzePatientSanation = analyzePatientSanation;
-/**
- * Функция возвращает мультисписковое поле для карточки контакта "Информация о санации"
- */
-/*const getSanationMultiselectFields = (field_id:number, patientSanation?:serverPatientSanation,  sanationEnumIds = SANATION_ENUM_ID) => {
-   if (!patientSanation) {
-       return undefined
-   }
-
-   const sanationTypes = [
-       {
-           name: "ID_TherapeuticSanations",
-           value: patientSanation.ID_TherapeuticSanations
-       },
-       {
-           name: "ID_ProstheticSanations",
-           value: patientSanation.ID_ProstheticSanations
-       },
-       {
-           name: "ID_OrthodonticSanations",
-           value: patientSanation.ID_OrthodonticSanations
-       },
-       {
-           name: "ID_ParodontolalSanations",
-           value: patientSanation.ID_ParodontolalSanations
-       },
-       {
-           name: "ID_SurgicalSanations",
-           value: patientSanation.ID_SurgicalSanations
-       }
-   ];
-
-   return {
-       field_id: field_id,
-       values: sanationTypes.filter(element => element.value === 2 || element.value === 3).map(element => {
-           return {
-               value: sanationEnumIds[element.name][1],
-               enum_id: sanationEnumIds[element.name][0]
-           }
-       })
-   }
-}*/
-//функция для разбиения запроса на создание на несколько по chunkSize
-const bulkOperation = (request, data, chunkSize, operationName = "bulk") => __awaiter(void 0, void 0, void 0, function* () {
-    let failed = [];
-    if (data.length) {
-        console.log(`Start operation of ${operationName}`);
-        const result = [];
-        try {
-            const chunksCount = data.length / chunkSize;
-            for (let i = 0; i < chunksCount; i++) {
-                try {
-                    const sliced = data.slice(i * chunkSize, (i + 1) * chunkSize);
-                    const requestResult = yield request(sliced);
-                    if (requestResult && requestResult.length > 0) {
-                        const updatedResult = requestResult.map((element, index) => {
-                            if (!i) {
-                                return Object.assign(Object.assign({}, element), { request_id: String(index) });
-                            }
-                            return Object.assign(Object.assign({}, element), { request_id: String((i * chunkSize) + index) });
-                        });
-                        result.push(...updatedResult);
-                    }
-                }
-                catch (e) {
-                    console.log(e);
-                    failed.push(...data.slice(i * chunkSize, (i + 1) * chunkSize));
-                }
-                console.log(`${operationName} ${i * chunkSize} - ${(i + 1) * chunkSize}`);
-            }
-            return result;
-        }
-        catch (e) {
-            console.log(e);
-        }
-    }
-    console.log(`operation "${operationName}" finished. Failed - ${failed.length}`);
-    fs_1.default.writeFileSync(`./bulkOperations_logs/${operationName}Failed.txt`, JSON.stringify(failed));
-});
-exports.bulkOperation = bulkOperation;
 const getUniqNumbers = (numbers) => {
     const numberCollection = new Set();
     numbers.forEach((number) => numberCollection.add(number));

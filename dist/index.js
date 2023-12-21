@@ -16,8 +16,14 @@ const express_1 = __importDefault(require("express"));
 const amo_1 = __importDefault(require("./api/amo"));
 const logger_1 = require("./logger");
 const config_1 = __importDefault(require("./config"));
-const utils_1 = require("./utils");
-const LIST_OF_SERVICES_ID = [486601, 486603, 486605, 486607, 486609]; // id полей услуг клиники
+const SERVICES_FIELD_ID = 460147;
+const LIST_OF_SERVICES_NAME = [
+    'Лазерная эпиляция',
+    'Ультразвуковой лифтинг',
+    'Лазерное удаление сосудов',
+    'Лазерное омоложение лица',
+    'Коррекция мимических морщин',
+];
 const TYPE_TASK_FOR_CHECK = 3186358; // id типа задачи "Проверить"
 const MILISENCONDS_IN_PER_SECOND = 1000;
 const UNIX_ONE_DAY = 86400;
@@ -35,33 +41,106 @@ app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d;
-    const contactsRequestBody = req.body.contacts;
-    if (!contactsRequestBody) {
+    const leadsRequestBody = req.body.leads;
+    if (!leadsRequestBody) {
         res.status(400).send({ message: "Bad request" });
         throw new Error('err');
     }
-    const contactId = Number(contactsRequestBody.update[0].id);
-    const contact = yield api.getContact(contactId);
-    const [dealId] = Object.keys(contactsRequestBody.update[0].linked_leads_id).map(Number);
-    if (!dealId) {
-        logger_1.mainLogger.debug("Contact isn't attatched to the deal");
-        return;
-    }
+    const dealId = Number(leadsRequestBody.update[0].id);
     const deal = yield api.getDeal(dealId, [Entities.Contacts]);
-    const isContactMain = ((_c = (_b = (_a = deal._embedded) === null || _a === void 0 ? void 0 : _a.contacts) === null || _b === void 0 ? void 0 : _b.find(item => item.id === contactId)) === null || _c === void 0 ? void 0 : _c.is_main) || false;
-    if (!isContactMain) {
-        logger_1.mainLogger.debug("Contact isn't main");
+    const mainContactId = ((_c = (_b = (_a = deal._embedded) === null || _a === void 0 ? void 0 : _a.contacts) === null || _b === void 0 ? void 0 : _b.find(item => item.is_main === true)) === null || _c === void 0 ? void 0 : _c.id) || undefined;
+    if (!mainContactId) {
+        logger_1.mainLogger.debug("No contacts in lead");
         return;
     }
-    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + Number((0, utils_1.getFieldValues)(contact.custom_fields_values, elem)), 0);
-    const updatedLeadsValues = {
+    const contact = yield api.getContact(mainContactId);
+    //Получаю названия объектов в мультисписка в сделке
+    //Каким-то образом запушить надо в массив все эти элементы
+    const qwerty = (_d = deal.custom_fields_values) === null || _d === void 0 ? void 0 : _d.map(field => {
+        field.values.map(item => {
+            if (item.value) {
+                if (LIST_OF_SERVICES_NAME.includes(String(item.value))) {
+                }
+            }
+        });
+    });
+    const names = () => {
+        if (deal.custom_fields_values) {
+            deal.custom_fields_values[0].values.map(item => {
+                if (item.value) {
+                    if (LIST_OF_SERVICES_NAME.includes(String(item.value))) {
+                        return item.value;
+                    }
+                }
+            });
+        }
+    };
+    console.log(qwerty);
+    //Получаю названия объектов в мультисписка в контакте
+    /*if(contact.custom_fields_values){
+        contact.custom_fields_values.map(item => {
+            if (item.field_name) {
+                if (LIST_OF_SERVICES_NAME.includes(item.field_name)) {
+                    console.log(item.field_name);
+                }
+            }
+        });
+    }*/
+    res.status(200).send({ message: "ok" });
+}));
+/*app.post("/hookContact", async (req: Request<unknown, unknown, WebHook>, res: Response) => {
+
+    const contactsRequestBody = req.body.contacts;
+
+    
+    if (!contactsRequestBody) {
+        res.status(400).send({message: "Bad request"});
+        throw new Error('err');
+    }
+    const contactId = Number(contactsRequestBody.update[0].id);
+
+    const contact = await api.getContact(contactId);
+    
+    const [ dealId ] = Object.keys(contactsRequestBody.update[0].linked_leads_id).map(Number);
+
+    if(!dealId) {
+        mainLogger.debug("Contact isn't attatched to the deal");
+        return;
+    }
+
+    const deal = await api.getDeal(dealId, [Entities.Contacts]);
+
+    const isContactMain = deal._embedded?.contacts?.find(item => item.id === contactId)?.is_main || false;
+
+    if (!isContactMain) {
+        mainLogger.debug("Contact isn't main");
+        return;
+    }
+
+    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum: number, fieldId: number) => {
+
+        if (contact.custom_fields_values) {
+
+            return accum + Number(getFieldValue(contact.custom_fields_values, fieldId))
+        }
+        return accum;
+    }, 0);
+    
+    const updatedLeadsValues: LeadData = {
         id: dealId,
         price: servicesBill,
     };
+    
+    await api.updateDeals([updatedLeadsValues]);
+    
     const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
-    const tasks = yield api.getTasks();
-    const isTaskAlreadyCreated = (_d = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false))) !== null && _d !== void 0 ? _d : false;
+
+    const tasks = await api.getTasks();
+
+    const isTaskAlreadyCreated = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false)) ?? false;
+    
     if (!isTaskAlreadyCreated) {
+
         const addTaskField = {
             responsible_user_id: deal.created_by,
             task_type_id: TYPE_TASK_FOR_CHECK,
@@ -69,15 +148,17 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             complete_till: completeTill,
             entity_id: dealId,
             entity_type: Entities.Leads,
-        };
-        yield api.updateDeals([updatedLeadsValues]);
-        yield api.createTasks([addTaskField]);
+        }
+        
+        await api.createTasks([addTaskField]);
     }
     else {
-        logger_1.mainLogger.debug("Task has already been created");
+        mainLogger.debug("Task has already been created");
     }
-    res.status(200).send({ message: "ok" });
-}));
+
+    res.status(200).send({message: "ok"});
+
+});*/
 app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const tasksRequestBody = req.body.task;
     if (tasksRequestBody) {
