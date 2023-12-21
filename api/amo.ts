@@ -10,8 +10,8 @@ import {
 import log4js from "log4js";
 import { Contact } from "../types/contacts/contact";
 import { LeadData } from "../types/lead/lead";
-import { Lead } from "../types/embeddedEntities/embeddedEntities";
-import { ContactList } from "../types/contacts/contactList";
+import { CreatedTask, Task } from "../types/task/task";
+import { CreatedNote } from "../types/notes/note";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
@@ -148,8 +148,9 @@ class AmoCRM extends Api {
     });
 
     //Обновить сделку
-    updateDeals = this.authChecker((data)=> {
-        return axios.patch(`${this.ROOT_PATH}/api/v4/leads`, [].concat(data), {
+    updateDeals = this.authChecker((data: LeadData[]) => {
+        return axios.patch<LeadData>(`${this.ROOT_PATH}/api/v4/leads`, data
+            , {
             headers: {
                 Authorization: `Bearer ${this.ACCESS_TOKEN}`,
             },
@@ -179,30 +180,28 @@ class AmoCRM extends Api {
     });
 
     //Получить задачу по id сущности
-    getTasks = this.authChecker(() => {
+    getTasks = this.authChecker((): Promise<Task[]> => {
         return axios
             .get(`${this.ROOT_PATH}/api/v4/tasks`, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
             })
-            .then((res) => res.data);
+            .then((res) => res.data ? res.data._embedded.tasks : []);
     });
     
     //Создать задачу
-    createTasks = this.authChecker((data)  => {
-		const tasksData = [].concat(data);
-		return axios.post(`${this.ROOT_PATH}/api/v4/tasks`, tasksData, {
+    createTasks = this.authChecker((data: CreatedTask[]): Promise<CreatedTask>  => {
+		return axios.post(`${this.ROOT_PATH}/api/v4/tasks`, data, {
 			headers: {
 				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
 			},
 		});
 	});
-
+ 
     //Создать примечание
-    createNotes = this.authChecker((data: Object[]) => {
-        const [notesData] = [].concat(data);
-        return axios.post(`${this.ROOT_PATH}/api/v4/${notesData.entity_type}/${notesData.entity_id}/notes`, [notesData],{
+    createNotes = this.authChecker((data: CreatedNote[]): Promise<CreatedNote> => {
+        return axios.post(`${this.ROOT_PATH}/api/v4/${data[0].entity_type}/${data[0].entity_id}/notes`, data,{
 			headers: {
 				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
 			},

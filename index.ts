@@ -3,7 +3,11 @@ import { Request , Response} from "express";
 import  AmoCRM  from "./api/amo";
 import { mainLogger } from "./logger"
 import config from "./config";
-import { getFieldValues } from "./utils";
+import { getFieldValues, getTodayDateTime } from "./utils";
+import { Customfield } from "./types/customField/customField";
+import { CreatedTask, Task } from "./types/task/task";
+import { CreatedNote } from "./types/notes/note";
+import { LeadData } from "./types/lead/lead";
 
 
 const LIST_OF_SERVICES_ID = [486601, 486603, 486605, 486607, 486609]; // id полей услуг клиники
@@ -41,6 +45,17 @@ type ContactWebHook = {
 	
 }
 
+type TaskWebHook = {
+	task: {
+		update: [{
+			id: string,
+			element_id: number,
+			element_type: string,
+			responsible_user_id: number,
+		}]
+	}
+}
+
 app.post("/hook", async (req: Request<unknown, unknown, ContactWebHook>, res: Response) => {
 
 	const contactsRequestBody = req.body.contacts;
@@ -70,26 +85,21 @@ app.post("/hook", async (req: Request<unknown, unknown, ContactWebHook>, res: Re
 		return;
 	}
 
-
-
-	const servicesBill = LIST_OF_SERVICES_ID.reduce((accum: number, elem: number) => accum + getFieldValues(contact.custom_fields_values, elem), 0);
+	const servicesBill = LIST_OF_SERVICES_ID.reduce((accum: number, elem: number) => accum + Number(getFieldValues(contact.custom_fields_values!, elem)), 0);
 		
-	const updatedLeadsValues = {
+	const updatedLeadsValues: LeadData = {
 		id: dealId,
 		price: servicesBill,
 	};
-		
-	console.log(servicesBill);
+	
+	const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
 
-	await api.updateDeals([updatedLeadsValues]);
+	const tasks = await api.getTasks();
 
-	/*const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
-
-	const tasks = (await api.getTasks())._embedded.tasks;
-
-	const isTaskAlreadyCreated = tasks.find((item :{entity_id:number, is_completed: boolean}) => (item.entity_id === dealId && item.is_completed === false));
+	const isTaskAlreadyCreated = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false)) ?? false;
 
 	if (!isTaskAlreadyCreated) {
+
 		const addTaskField = {
 			responsible_user_id: deal.created_by,
 			task_type_id: TYPE_TASK_FOR_CHECK,
@@ -98,31 +108,32 @@ app.post("/hook", async (req: Request<unknown, unknown, ContactWebHook>, res: Re
 			entity_id: dealId,
 			entity_type: Entities.Leads,
 		}
-
-		await api.createTasks(addTaskField);
+		
+		await api.updateDeals([updatedLeadsValues]);
+		await api.createTasks([addTaskField]);
 	}
 	else {
 		mainLogger.debug("Task has already been created");
-	}*/
+	}
 
 	res.status(200).send({message: "ok"}); 
 
 });
 
-app.post("/hookTask", async (req, res) => {
+app.post("/hookTask", async (req: Request<unknown, unknown, TaskWebHook>, res: Response) => {
 	
-	const tasksRequreBody = req.body.task;
+	const tasksRequestBody = req.body.task;
+	
+	if(tasksRequestBody) {
 
-	if(tasksRequreBody) {
-
-		const [{element_id:elementId}] = tasksRequreBody.update;
-		const [{responsible_user_id:responsibleUserId}] = tasksRequreBody.update;
+		const [{element_id:elementId}] = tasksRequestBody.update;
+		const [{responsible_user_id:responsibleUserId}] = tasksRequestBody.update;
 
 		if(!responsibleUserId){
 			return;
 		}
 
-		const createdNoteField = {
+		const createdNoteField: CreatedNote = {
 			created_by: Number(responsibleUserId),
 			entity_id: elementId,
 			entity_type: Entities.Leads,
@@ -137,8 +148,6 @@ app.post("/hookTask", async (req, res) => {
 	else{
 		mainLogger.debug("Task update error");
 	}
-
-	mainLogger.debug(tasksRequreBody);
 
 	res.status(200).send({message: "ok"});
 });

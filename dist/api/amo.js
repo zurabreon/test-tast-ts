@@ -66,7 +66,7 @@ class AmoCRM extends api_1.default {
         });
         //Обновить сделку
         this.updateDeals = this.authChecker((data) => {
-            return axios_1.default.patch(`${this.ROOT_PATH}/api/v4/leads`, [].concat(data), {
+            return axios_1.default.patch(`${this.ROOT_PATH}/api/v4/leads`, data, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
@@ -100,12 +100,11 @@ class AmoCRM extends api_1.default {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
             })
-                .then((res) => res.data);
+                .then((res) => res.data ? res.data._embedded.tasks : []);
         });
         //Создать задачу
         this.createTasks = this.authChecker((data) => {
-            const tasksData = [].concat(data);
-            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/tasks`, tasksData, {
+            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/tasks`, data, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
@@ -113,8 +112,7 @@ class AmoCRM extends api_1.default {
         });
         //Создать примечание
         this.createNotes = this.authChecker((data) => {
-            const [notesData] = [].concat(data);
-            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/${notesData.entity_type}/${notesData.entity_id}/notes`, [notesData], {
+            return axios_1.default.post(`${this.ROOT_PATH}/api/v4/${data[0].entity_type}/${data[0].entity_id}/notes`, data, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },

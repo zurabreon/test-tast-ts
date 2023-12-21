@@ -34,7 +34,7 @@ app.get("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.send("123");
 }));
 app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const contactsRequestBody = req.body.contacts;
     if (!contactsRequestBody) {
         res.status(400).send({ message: "Bad request" });
@@ -53,19 +53,14 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         logger_1.mainLogger.debug("Contact isn't main");
         return;
     }
-    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + (0, utils_1.getFieldValues)(contact.custom_fields_values, elem), 0);
+    const servicesBill = LIST_OF_SERVICES_ID.reduce((accum, elem) => accum + Number((0, utils_1.getFieldValues)(contact.custom_fields_values, elem)), 0);
     const updatedLeadsValues = {
         id: dealId,
         price: servicesBill,
     };
-    console.log(servicesBill);
-    yield api.updateDeals([updatedLeadsValues]);
-    /*const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
-
-    const tasks = (await api.getTasks())._embedded.tasks;
-
-    const isTaskAlreadyCreated = tasks.find((item :{entity_id:number, is_completed: boolean}) => (item.entity_id === dealId && item.is_completed === false));
-
+    const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+    const tasks = yield api.getTasks();
+    const isTaskAlreadyCreated = (_d = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false))) !== null && _d !== void 0 ? _d : false;
     if (!isTaskAlreadyCreated) {
         const addTaskField = {
             responsible_user_id: deal.created_by,
@@ -74,20 +69,20 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             complete_till: completeTill,
             entity_id: dealId,
             entity_type: Entities.Leads,
-        }
-
-        await api.createTasks(addTaskField);
+        };
+        yield api.updateDeals([updatedLeadsValues]);
+        yield api.createTasks([addTaskField]);
     }
     else {
-        mainLogger.debug("Task has already been created");
-    }*/
+        logger_1.mainLogger.debug("Task has already been created");
+    }
     res.status(200).send({ message: "ok" });
 }));
 app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const tasksRequreBody = req.body.task;
-    if (tasksRequreBody) {
-        const [{ element_id: elementId }] = tasksRequreBody.update;
-        const [{ responsible_user_id: responsibleUserId }] = tasksRequreBody.update;
+    const tasksRequestBody = req.body.task;
+    if (tasksRequestBody) {
+        const [{ element_id: elementId }] = tasksRequestBody.update;
+        const [{ responsible_user_id: responsibleUserId }] = tasksRequestBody.update;
         if (!responsibleUserId) {
             return;
         }
@@ -105,7 +100,6 @@ app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* 
     else {
         logger_1.mainLogger.debug("Task update error");
     }
-    logger_1.mainLogger.debug(tasksRequreBody);
     res.status(200).send({ message: "ok" });
 }));
 app.listen(config_1.default.PORT, () => logger_1.mainLogger.debug('Server started on ', config_1.default.PORT));
