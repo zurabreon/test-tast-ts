@@ -82,7 +82,7 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 
 	const contact = await api.getContact(mainContactId);
 
-	const chosenServices: string[] = deal.custom_fields_values ? getFieldValues(deal.custom_fields_values!, MUTLI_LIST_SERVICES_ID) : []; //Выбранные услуги в сделке
+	const chosenServices: string[] = deal.custom_fields_values ? getFieldValues(deal.custom_fields_values, MUTLI_LIST_SERVICES_ID) : []; //Выбранные услуги в сделке
 	
 	
 	const servicesBill = chosenServices.reduce(
@@ -90,10 +90,9 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 		function (accum: number, item: string){
 
 			if(contact.custom_fields_values) {
+
 				const price = Number(getFieldValueOfString(contact.custom_fields_values, item))
 				
-				console.log(price);
-
 				return price ? accum + price: accum;
 			}
 			return accum;
@@ -118,7 +117,7 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 		if (!isTaskAlreadyCreated) {
 	 
 			const addTaskField = {
-				responsible_user_id: deal.created_by,
+				responsible_user_id: deal.responsible_user_id,
 				task_type_id: TYPE_TASK_FOR_CHECK,
 				text: 'Проверить бюджет',
 				complete_till: completeTill,
@@ -153,7 +152,6 @@ app.post("/hookTask", async (req: Request<unknown, unknown, TaskWebHook>, res: R
 		}
 
 		const createdNoteField: CreatedNote = {
-			created_by: Number(responsibleUserId),
 			entity_id: elementId,
 			entity_type: Entities.Leads,
 			note_type: 'common',
