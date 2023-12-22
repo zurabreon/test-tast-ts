@@ -19,6 +19,14 @@ const getFieldValue = (customFields:Array<Customfield>, fieldId:number) => {
     return value;
 };
 
+const getFieldValueOfString = (customFields:Array<Customfield>, fieldName: string) => {
+    const field = customFields
+        ? customFields.find((item) => String(item.field_name || item.id) === String(fieldName))
+        : undefined;
+    const value = field ? field.values[0].value : undefined;
+    return value;
+};
+
 const getFieldValues = (customFields:Array<Customfield>, fieldId:number) => {
     const field = customFields
         ? customFields.find((item) => String(item.field_id || item.id) === String(fieldId))
@@ -97,6 +105,7 @@ export {
 	getClearPhoneNumber,
 	getFieldValue,
 	getFieldValues,
+    getFieldValueOfString,
 	getAllPages,
     makeField,
     getUnixBithdate,

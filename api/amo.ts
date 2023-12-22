@@ -1,7 +1,7 @@
 import axios from "axios";
 import config from "../config";
 import querystring from "querystring";
-import fs, { access } from "fs";
+import fs from "fs";
 import axiosRetry from "axios-retry";
 import Api from "./api";
 import {
@@ -198,10 +198,10 @@ class AmoCRM extends Api {
 			},
 		});
 	});
- 
-    //Создать примечание
-    createNotes = this.authChecker((entityType: 'leads', data: CreatedNote[]): Promise<CreatedNote> => {
-        return axios.post(`${this.ROOT_PATH}/api/v4/${entityType}/notes`, data,{
+  
+    //Создать примечание для сделки 
+    createNotes = this.authChecker((entityId: number, entityType: string, data: CreatedNote[]): Promise<CreatedNote> => {
+        return axios.post(`${this.ROOT_PATH}/api/v4/${entityType}/${entityId}/notes`, data,{
 			headers: {
 				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
 			},
