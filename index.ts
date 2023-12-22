@@ -3,7 +3,7 @@ import { Request , Response} from "express";
 import  AmoCRM  from "./api/amo";
 import { mainLogger } from "./logger"
 import config from "./config";
-import { getFieldValueOfString } from "./utils";
+import { getFieldValueOfString, getFieldValue } from "./utils";
 import { CreatedNote } from "./types/notes/note";
 import { LeadData } from "./types/lead/lead";
 import { Customfield } from "./types/customField/customField";
@@ -81,17 +81,22 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 
 	const contact = await api.getContact(mainContactId);
 
-	const [ services ] = deal.custom_fields_values ? deal.custom_fields_values : []; //Выбранные услуги в сделке
+	const [ chosenServices ] = deal.custom_fields_values ? deal.custom_fields_values : []; //Выбранные услуги в сделке
 	
-	const servicesBill = services.values.map(item => {
+	const servicesBill = chosenServices.values.map(item => {
 
 		if (contact.custom_fields_values) {
-			return Number(getFieldValueOfString(contact.custom_fields_values, String(item.value)));
+
+			const price = Number(getFieldValueOfString(contact.custom_fields_values, String(item.value)))
+
+			return price ? price : 0;
 		}
 		else {
 			return 0;
 		}
 	}).reduce((accum: number, item: number) => accum + item, 0);
+
+	console.log(servicesBill);
 
 	const updatedLeadsValues: LeadData = { 
 		id: dealId,
@@ -122,7 +127,7 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 	else { 
 		mainLogger.debug("Task has already been created");
 		return;
-	} 
+	}
 
 	res.status(200).send({message: "ok"});
 });

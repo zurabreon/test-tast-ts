@@ -22,7 +22,7 @@ const getFieldValue = (customFields:Array<Customfield>, fieldId:number) => {
 const getFieldValueOfString = (customFields:Array<Customfield>, fieldName: string) => {
     const field = customFields
         ? customFields.find((item) => String(item.field_name || item.id) === String(fieldName))
-        : undefined;
+        : 0;
     const value = field ? field.values[0].value : undefined;
     return value;
 };

@@ -1,7 +1,7 @@
 import axios from "axios";
 import config from "../config";
 import querystring from "querystring";
-import fs from "fs";
+import fs, { access } from "fs";
 import axiosRetry from "axios-retry";
 import Api from "./api";
 import {
@@ -189,7 +189,7 @@ class AmoCRM extends Api {
             })
             .then((res) => res.data ? res.data._embedded.tasks : []);
     });
-    
+     
     //Создать задачу
     createTasks = this.authChecker((data: CreatedTask[]): Promise<CreatedTask>  => {
 		return axios.post(`${this.ROOT_PATH}/api/v4/tasks`, data, {
@@ -198,7 +198,7 @@ class AmoCRM extends Api {
 			},
 		});
 	});
-  
+ 
     //Создать примечание для сделки 
     createNotes = this.authChecker((entityId: number, entityType: string, data: CreatedNote[]): Promise<CreatedNote> => {
         return axios.post(`${this.ROOT_PATH}/api/v4/${entityType}/${entityId}/notes`, data,{

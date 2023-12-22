@@ -17,14 +17,6 @@ const amo_1 = __importDefault(require("./api/amo"));
 const logger_1 = require("./logger");
 const config_1 = __importDefault(require("./config"));
 const utils_1 = require("./utils");
-const SERVICES_FIELD_ID = 460147;
-const LIST_OF_SERVICES_NAME = [
-    'Лазерная эпиляция',
-    'Ультразвуковой лифтинг',
-    'Лазерное удаление сосудов',
-    'Лазерное омоложение лица',
-    'Коррекция мимических морщин',
-];
 const TYPE_TASK_FOR_CHECK = 3186358; // id типа задачи "Проверить"
 const MILISENCONDS_IN_PER_SECOND = 1000;
 const UNIX_ONE_DAY = 86400;
@@ -52,19 +44,20 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const mainContactId = ((_c = (_b = (_a = deal._embedded) === null || _a === void 0 ? void 0 : _a.contacts) === null || _b === void 0 ? void 0 : _b.find(item => item.is_main === true)) === null || _c === void 0 ? void 0 : _c.id) || undefined;
     if (!mainContactId) {
         logger_1.mainLogger.debug("No contacts in lead");
-        res.status(200).send({ message: "ok" });
         return;
     }
     const contact = yield api.getContact(mainContactId);
-    const [services] = deal.custom_fields_values ? deal.custom_fields_values : []; //Выбранные услуги в сделке
-    const servicesBill = services.values.map(item => {
+    const [chosenServices] = deal.custom_fields_values ? deal.custom_fields_values : []; //Выбранные услуги в сделке
+    const servicesBill = chosenServices.values.map(item => {
         if (contact.custom_fields_values) {
-            return Number((0, utils_1.getFieldValueOfString)(contact.custom_fields_values, String(item.value)));
+            const price = Number((0, utils_1.getFieldValueOfString)(contact.custom_fields_values, String(item.value)));
+            return price ? price : 0;
         }
         else {
             return 0;
         }
     }).reduce((accum, item) => accum + item, 0);
+    console.log(servicesBill);
     const updatedLeadsValues = {
         id: dealId,
         price: servicesBill,
@@ -86,7 +79,6 @@ app.post("/hook", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     }
     else {
         logger_1.mainLogger.debug("Task has already been created");
-        res.status(200).send({ message: "ok" });
         return;
     }
     res.status(200).send({ message: "ok" });
@@ -102,6 +94,7 @@ app.post("/hookTask", (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const createdNoteField = {
             created_by: Number(responsibleUserId),
             entity_id: elementId,
+            entity_type: Entities.Leads,
             note_type: 'common',
             params: {
                 text: 'Бюджет проверен, ошибок нет'
