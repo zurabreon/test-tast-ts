@@ -3,7 +3,7 @@ import { Request , Response} from "express";
 import  AmoCRM  from "./api/amo";
 import { mainLogger } from "./logger"
 import config from "./config";
-import { getFieldValueOfString, getFieldValue } from "./utils";
+import { getFieldValueOfString, getFieldValue, getFieldValues } from "./utils";
 import { CreatedNote } from "./types/notes/note";
 import { LeadData } from "./types/lead/lead";
 import { Customfield } from "./types/customField/customField";
@@ -12,6 +12,7 @@ import { Customfield } from "./types/customField/customField";
 const TYPE_TASK_FOR_CHECK = 3186358; // id типа задачи "Проверить"
 const MILISENCONDS_IN_PER_SECOND = 1000;
 const UNIX_ONE_DAY = 86400;
+const MUTLI_LIST_SERVICES_ID = 460147;
 
 const Entities = {
 	Contacts: 'contacts',
@@ -28,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 
 api.getAccessToken();
 
-app.get("/", async (req: Request, res: Response) => {
+app.get("/", async (_req: Request, res: Response) => {
 	res.send('123');
 }); 
 
@@ -61,7 +62,7 @@ type TaskWebHook = {
 
 app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) => {
 
-	const leadsRequestBody = req.body.leads
+	const leadsRequestBody = req.body.leads;
 
 	if (!leadsRequestBody) {
 		res.status(400).send({message: "Bad request"});
@@ -81,52 +82,57 @@ app.post("/hook", async (req: Request<unknown, unknown, WebHook>, res:Response) 
 
 	const contact = await api.getContact(mainContactId);
 
-	const [ chosenServices ] = deal.custom_fields_values ? deal.custom_fields_values : []; //Выбранные услуги в сделке
+	const chosenServices: string[] = deal.custom_fields_values ? getFieldValues(deal.custom_fields_values!, MUTLI_LIST_SERVICES_ID) : []; //Выбранные услуги в сделке
 	
-	const servicesBill = chosenServices.values.map(item => {
+	
+	const servicesBill = chosenServices.reduce(
 
-		if (contact.custom_fields_values) {
+		function (accum: number, item: string){
 
-			const price = Number(getFieldValueOfString(contact.custom_fields_values, String(item.value)))
+			if(contact.custom_fields_values) {
+				const price = Number(getFieldValueOfString(contact.custom_fields_values, item))
+				
+				console.log(price);
 
-			return price ? price : 0;
-		}
-		else {
-			return 0;
-		}
-	}).reduce((accum: number, item: number) => accum + item, 0);
-
-	console.log(servicesBill);
-
+				return price ? accum + price: accum;
+			}
+			return accum;
+		},
+		0
+	);
+	
 	const updatedLeadsValues: LeadData = { 
 		id: dealId,
 		price: servicesBill,
 	};
 	 
-	await api.updateDeals([updatedLeadsValues]);
-
-	const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
-
-	const tasks = await api.getTasks();
-
-	const isTaskAlreadyCreated = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false)) ?? false;
-	
-	if (!isTaskAlreadyCreated) {
-
-		const addTaskField = {
-			responsible_user_id: deal.created_by,
-			task_type_id: TYPE_TASK_FOR_CHECK,
-			text: 'Проверить бюджет',
-			complete_till: completeTill,
-			entity_id: dealId,
-			entity_type: Entities.Leads,
-		}
+	if(deal.price !== servicesBill) {
+		await api.updateDeals([updatedLeadsValues]);
 		
-		await api.createTasks([addTaskField]);
-	} 
-	else { 
-		mainLogger.debug("Task has already been created");
-		return;
+		const completeTill = Math.floor(Date.now() / MILISENCONDS_IN_PER_SECOND) + UNIX_ONE_DAY;
+	
+		const tasks = await api.getTasks();
+	
+		const isTaskAlreadyCreated = tasks.some((item) => (item.entity_id === dealId && item.is_completed === false)) ?? false;
+		
+		if (!isTaskAlreadyCreated) {
+	 
+			const addTaskField = {
+				responsible_user_id: deal.created_by,
+				task_type_id: TYPE_TASK_FOR_CHECK,
+				text: 'Проверить бюджет',
+				complete_till: completeTill,
+				entity_id: dealId,
+				entity_type: Entities.Leads,
+			}
+			
+			await api.createTasks([addTaskField]);
+		} 
+		else { 
+			mainLogger.debug("Task has already been created");
+			return;
+	}
+
 	}
 
 	res.status(200).send({message: "ok"});
