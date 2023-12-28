@@ -15,7 +15,7 @@ export type Contact = {
     is_deleted?: boolean,
     is_unsorted?: boolean,
     closest_task_at: number | null,
-    custom_fields_values?: Array<Customfield> | null,
+    custom_fields_values?: Array<Customfield>,
     account_id: number,
     _links: {
         self: {

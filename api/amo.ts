@@ -10,9 +10,8 @@ import {
 import log4js from "log4js";
 import { Contact } from "../types/contacts/contact";
 import { LeadData } from "../types/lead/lead";
-import { Task } from "../types/task/task";
-import { TaskList } from "../types/task/taskList";
-import { constrainedMemory } from "process";
+import { CreatedTask, Task } from "../types/task/task";
+import { CreatedNote } from "../types/notes/note";
 
 axiosRetry(axios, { retries: 3, retryDelay: axiosRetry.exponentialDelay });
 
@@ -107,7 +106,7 @@ class AmoCRM extends Api {
                 client_id: config.CLIENT_ID,
                 client_secret: config.CLIENT_SECRET,
                 grant_type: "refresh_token",
-                REFRESH_TOKEN: this.REFRESH_TOKEN,
+                refresh_token: this.REFRESH_TOKEN,
                 redirect_uri: config.REDIRECT_URI,
             })
             .then((res) => {
@@ -133,7 +132,7 @@ class AmoCRM extends Api {
     });
     
     //Получить сделку
-    getDeal = this.authChecker((id, withParam = []): Promise<LeadData> => {
+    getDeal = this.authChecker((id: number, withParam = []): Promise<LeadData> => {
         return axios
             .get<LeadData>(
                 `${this.ROOT_PATH}/api/v4/leads/${id}?${querystring.encode({
@@ -149,8 +148,9 @@ class AmoCRM extends Api {
     });
 
     //Обновить сделку
-    updateDeals = this.authChecker((data)=> {
-        return axios.patch(`${this.ROOT_PATH}/api/v4/leads`, [].concat(data), {
+    updateDeals = this.authChecker((data: LeadData[]) => {
+        return axios.patch<LeadData>(`${this.ROOT_PATH}/api/v4/leads`, data
+            , {
             headers: {
                 Authorization: `Bearer ${this.ACCESS_TOKEN}`,
             },
@@ -180,25 +180,33 @@ class AmoCRM extends Api {
     });
 
     //Получить задачу по id сущности
-    getTasks = this.authChecker(() => {
+    getTasks = this.authChecker((): Promise<Task[]> => {
         return axios
             .get(`${this.ROOT_PATH}/api/v4/tasks`, {
                 headers: {
                     Authorization: `Bearer ${this.ACCESS_TOKEN}`,
                 },
             })
-            .then((res) => res.data);
+            .then((res) => res.data ? res.data._embedded.tasks : []);
     });
-    
+     
     //Создать задачу
-    createTasks = this.authChecker((data)  => {
-		const tasksData = [].concat(data);
-		return axios.post(`${this.ROOT_PATH}/api/v4/tasks`, tasksData, {
+    createTasks = this.authChecker((data: CreatedTask[]): Promise<CreatedTask>  => {
+		return axios.post(`${this.ROOT_PATH}/api/v4/tasks`, data, {
 			headers: {
 				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
 			},
 		});
 	});
+ 
+    //Создать примечание для сделки 
+    createNotes = this.authChecker((entityId: number, entityType: string, data: CreatedNote[]): Promise<CreatedNote> => {
+        return axios.post(`${this.ROOT_PATH}/api/v4/${entityType}/${entityId}/notes`, data,{
+			headers: {
+				Authorization: `Bearer ${this.ACCESS_TOKEN}`,
+			},
+		}); 
+    })
 }
 
 export default AmoCRM; 
